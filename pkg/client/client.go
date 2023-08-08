@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"stable-diffusion-model-uploader/pkg/config"
+	"stable-diffusion-model-uploader/pkg/model"
 	"stable-diffusion-model-uploader/pkg/utils"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
@@ -65,8 +66,8 @@ func (c *AliClient) Error() error {
 	return c.err
 }
 
-func (c *AliClient) UploadChunk(url string) {
-	resp, err := http.Get(url)
+func (c *AliClient) UploadChunk(model *model.IModelDetailDTO) {
+	resp, err := http.Get(model.DownloadUrl)
 	if err != nil {
 		c.err = fmt.Errorf("failed to download model: %w", err)
 		return
@@ -79,7 +80,8 @@ func (c *AliClient) UploadChunk(url string) {
 		c.err = err
 		return
 	}
-	objectName := filename
+	objectName := utils.GetObjectName(model.Type, filename)
+
 	// 上传前判断文件是否存在
 	exist, err := c.bucket.IsObjectExist(objectName)
 	if err != nil {

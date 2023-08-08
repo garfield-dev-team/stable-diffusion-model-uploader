@@ -2,6 +2,7 @@ package model
 
 type IModelDetailDTO struct {
 	Id          int    `json:"id"`
+	Type        uint8  `json:"type"` //checkpoint = 0,lora = 1,textual = 2
 	DownloadUrl string `json:"downloadUrl"`
 }
 

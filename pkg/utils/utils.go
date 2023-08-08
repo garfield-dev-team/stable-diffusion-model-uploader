@@ -14,3 +14,18 @@ func GetDownloadFileName(contentDisposition string) (string, error) {
 	}
 	return "", fmt.Errorf("cannot get filename: %s", contentDisposition)
 }
+
+func GetObjectName(modelType uint8, filename string) string {
+	var objectName string
+	switch modelType {
+	case 0:
+		objectName = "checkpoint/" + filename
+		break
+	case 1:
+		objectName = "lora/" + filename
+		break
+	default:
+		objectName = filename
+	}
+	return objectName
+}
