@@ -52,8 +52,8 @@ type AliClient struct {
 
 func New() *AliClient {
 	client, bucket := GetOSS()
-	// 缓冲区大小为 10MB
-	buffer := make([]byte, 10*1024*1024)
+	// 缓冲区大小为 100MB
+	buffer := make([]byte, 100*1024*1024)
 	return &AliClient{
 		client: client,
 		bucket: bucket,
@@ -68,7 +68,7 @@ func (c *AliClient) Error() error {
 func (c *AliClient) UploadChunk(url string) {
 	resp, err := http.Get(url)
 	if err != nil {
-		c.err = fmt.Errorf("failed to init req: %w", err)
+		c.err = fmt.Errorf("failed to download model: %w", err)
 		return
 	}
 	defer resp.Body.Close()
@@ -113,14 +113,17 @@ func (c *AliClient) UploadChunk(url string) {
 			if err == io.EOF {
 				break // 读取完毕，退出循环
 			}
-			c.err = fmt.Errorf("error reading resp: %w", err)
+			c.err = fmt.Errorf(
+				"failed to read resp, objectName: %s, detail: %w",
+				objectName, err)
 			return
 		}
 
 		// 将缓冲区中的数据流上传到 OSS 上
 		c.nextPos, err = c.bucket.AppendObject(objectName, bytes.NewReader(c.buffer[:n]), c.nextPos, option...)
 		if err != nil {
-			c.err = fmt.Errorf("error uploading model to OSS: %w", err)
+			c.err = fmt.Errorf("failed to upload model to OSS, objectName: %s, detail: %w",
+				objectName, err)
 			return
 		}
 	}

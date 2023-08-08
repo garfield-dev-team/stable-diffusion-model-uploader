@@ -32,7 +32,7 @@ func main() {
 	totalCount = len(list)
 
 	p := pool.New().
-		WithMaxGoroutines(runtime.NumCPU() * 3)
+		WithMaxGoroutines(runtime.NumCPU() * 1)
 
 	start = time.Now()
 	log.Println("[info] upload model to aliyun oss...")
@@ -51,6 +51,7 @@ func main() {
 					// 文件上传失败
 					atomic.AddInt64(&failedCount, 1)
 					log.Println("[warn] upload failed", item.Id)
+					log.Printf("%+v\n", err)
 				}
 				return
 			}

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 
 	"stable-diffusion-model-uploader/pkg/model"
@@ -34,10 +33,10 @@ func FetchModelList() []*model.IModelDetailDTO {
 		panic(fmt.Errorf("fail to request: %s", modelList.Message))
 	}
 
-	log.Printf("modelList.Result: %+v", modelList.Result)
 	l := len(modelList.Result.List)
 	m := make(map[int]struct{}, l)
-	res := make([]*model.IModelDetailDTO, 0)
+	// 注意切片预分配内存写法 make([]T, 0, len)
+	res := make([]*model.IModelDetailDTO, 0, l)
 
 	for _, dto := range modelList.Result.List {
 		if _, ok := m[dto.Id]; !ok {
