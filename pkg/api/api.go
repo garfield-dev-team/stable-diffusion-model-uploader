@@ -33,5 +33,16 @@ func FetchModelList() []*model.IModelDetailDTO {
 		panic(fmt.Errorf("fail to request: %s", modelList.Message))
 	}
 
-	return modelList.Result.List
+	l := len(modelList.Result.List)
+	m := make(map[int]struct{}, l)
+	res := make([]*model.IModelDetailDTO, l)
+
+	for _, dto := range modelList.Result.List {
+		if _, ok := m[dto.Id]; !ok {
+			m[dto.Id] = struct{}{}
+			res = append(res, dto)
+		}
+	}
+
+	return res
 }
