@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 
 	"stable-diffusion-model-uploader/pkg/model"
@@ -33,6 +34,7 @@ func FetchModelList() []*model.IModelDetailDTO {
 		panic(fmt.Errorf("fail to request: %s", modelList.Message))
 	}
 
+	log.Printf("modelList.Result.List: %+v", modelList.Result.List)
 	l := len(modelList.Result.List)
 	m := make(map[int]struct{}, l)
 	res := make([]*model.IModelDetailDTO, 0)
