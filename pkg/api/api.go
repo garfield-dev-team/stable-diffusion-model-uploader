@@ -35,7 +35,7 @@ func FetchModelList() []*model.IModelDetailDTO {
 
 	l := len(modelList.Result.List)
 	m := make(map[int]struct{}, l)
-	res := make([]*model.IModelDetailDTO, l)
+	res := make([]*model.IModelDetailDTO, 0)
 
 	for _, dto := range modelList.Result.List {
 		if _, ok := m[dto.Id]; !ok {
