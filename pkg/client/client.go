@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"sync"
 
@@ -118,6 +119,13 @@ func (c *AliClient) UploadChunk(model *model.IModelDetailDTO) {
 			c.err = fmt.Errorf(
 				"failed to read resp, objectName: %s, detail: %w",
 				objectName, err)
+			go func() {
+				if err := c.bucket.DeleteObject(objectName); err != nil {
+					log.Printf("[warn] failed to remove object: %s", objectName)
+				} else {
+					log.Printf("[info] successful remove fail object: %s", objectName)
+				}
+			}()
 			return
 		}
 
