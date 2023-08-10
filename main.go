@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"runtime"
 	"stable-diffusion-model-uploader/pkg/api"
 	"stable-diffusion-model-uploader/pkg/client"
 	"strings"
@@ -30,10 +31,8 @@ func main() {
 
 	totalCount = len(list)
 
-	//concurrency := runtime.NumCPU() * 1
-	concurrency := 4
 	p := pool.New().
-		WithMaxGoroutines(concurrency)
+		WithMaxGoroutines(runtime.NumCPU() * 1)
 
 	start = time.Now()
 	log.Println("[info] upload model to aliyun oss...")
