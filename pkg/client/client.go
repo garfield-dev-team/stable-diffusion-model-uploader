@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"sync"
 
 	"stable-diffusion-model-uploader/pkg/config"
@@ -45,26 +46,135 @@ func GetOSS() (*oss.Client, *oss.Bucket) {
 }
 
 type AliClient struct {
-	client  *oss.Client
-	bucket  *oss.Bucket
-	nextPos int64
-	buffer  []byte
-	err     error
+	client    *oss.Client
+	bucket    *oss.Bucket
+	nextPos   int64
+	buffer    []byte
+	fileName  string
+	fileSize  int
+	chunkSize int
+	err       error
 }
 
 func New() *AliClient {
 	client, bucket := GetOSS()
-	// 缓冲区大小为 100MB
-	buffer := make([]byte, 100*1024*1024)
+	// 缓冲区大小为 10MB
+	buffer := make([]byte, 10*1024*1024)
+	chunkSize := 10 * 1024 * 1024 // 每次请求的字节数为 10MB
 	return &AliClient{
-		client: client,
-		bucket: bucket,
-		buffer: buffer,
+		client:    client,
+		bucket:    bucket,
+		buffer:    buffer,
+		chunkSize: chunkSize,
 	}
 }
 
 func (c *AliClient) Error() error {
 	return c.err
+}
+
+func (c *AliClient) getFileMeta(url string) error {
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	contentLength := resp.Header.Get("Content-Length")
+	l, err := strconv.Atoi(contentLength)
+	if err != nil {
+		return err
+	}
+	c.fileSize = l
+	contentDisposition := resp.Header.Get("Content-Disposition")
+	filename, err := utils.GetDownloadFileName(contentDisposition)
+	if err != nil {
+		return err
+	}
+	c.fileName = filename
+	return nil
+}
+
+func (c *AliClient) downloadRange(url string, start, end int) ([]byte, error) {
+	client := http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, end))
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	buf := make([]byte, c.chunkSize)
+	n, err := io.CopyN(bytes.NewBuffer(buf), resp.Body, int64(c.chunkSize))
+	if err != nil {
+		return nil, err
+	}
+	return buf[:n], nil
+}
+
+func (c *AliClient) removeFailedObject(objectName string) {
+	if err := c.bucket.DeleteObject(objectName); err != nil {
+		log.Printf("[warn] failed to remove object: %s", objectName)
+	} else {
+		log.Printf("[info] successful remove fail object: %s", objectName)
+	}
+}
+
+func (c *AliClient) UploadRange(model *model.IModelDetailDTO) {
+	err := c.getFileMeta(model.DownloadUrl)
+	if err != nil {
+		c.err = fmt.Errorf("failed to resolve file meta: %w", err)
+		return
+	}
+	objectName := utils.GetObjectName(model.Type, c.fileName)
+	// 上传前判断文件是否存在
+	exist, err := c.bucket.IsObjectExist(objectName)
+	if err != nil {
+		c.err = fmt.Errorf("failed to call IsObjectExist: %w", err)
+		return
+	}
+	if exist {
+		c.err = fmt.Errorf("%w", ErrObjectExist)
+		return
+	}
+	option := []oss.Option{
+		// 指定该Object被下载时的网页缓存行为。
+		oss.CacheControl("no-cache"),
+		// 指定该Object被下载时的名称。
+		oss.ContentDisposition(fmt.Sprintf("attachment;filename=%s", objectName)),
+		// 指定该Object的内容编码格式。
+		oss.ContentEncoding("gzip"),
+		// 指定Object的存储类型。
+		oss.ObjectStorageClass(oss.StorageStandard),
+		// 指定Object的访问权限。
+		//oss.ObjectACL(oss.ACLPrivate),
+		// 指定服务器端加密方式。
+		//oss.ServerSideEncryption("AES256"),
+		// 创建AppendObject时可以添加x-oss-meta-*，继续追加时不可以携带此参数。如果配置以x-oss-meta-*为前缀的参数，则该参数视为元数据。
+		//oss.Meta("x-oss-meta-author", "Alice"),
+	}
+	for i := 0; i <= c.fileSize/c.chunkSize; i++ {
+		start := i * c.chunkSize
+		end := (i+1)*c.chunkSize - 1
+		if end > c.fileSize-1 {
+			end = c.fileSize - 1
+		}
+		chunk, err := c.downloadRange(model.DownloadUrl, start, end)
+		if err != nil {
+			c.err = fmt.Errorf("failed to download range, objectName: %s, detail: %w", objectName, err)
+			go c.removeFailedObject(objectName)
+			return
+		}
+		// 将缓冲区中的数据流上传到 OSS 上
+		c.nextPos, err = c.bucket.AppendObject(objectName, bytes.NewReader(chunk), c.nextPos, option...)
+		if err != nil {
+			c.err = fmt.Errorf("failed to upload model to OSS, objectName: %s, detail: %w",
+				objectName, err)
+			return
+		}
+	}
 }
 
 func (c *AliClient) UploadChunk(model *model.IModelDetailDTO) {
@@ -119,13 +229,7 @@ func (c *AliClient) UploadChunk(model *model.IModelDetailDTO) {
 			c.err = fmt.Errorf(
 				"failed to read resp, objectName: %s, detail: %w",
 				objectName, err)
-			go func() {
-				if err := c.bucket.DeleteObject(objectName); err != nil {
-					log.Printf("[warn] failed to remove object: %s", objectName)
-				} else {
-					log.Printf("[info] successful remove fail object: %s", objectName)
-				}
-			}()
+			go c.removeFailedObject(objectName)
 			return
 		}
 

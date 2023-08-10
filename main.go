@@ -46,7 +46,7 @@ func main() {
 				if errors.Is(err, client.ErrObjectExist) {
 					// 文件已存在
 					atomic.AddInt64(&ignoreCount, 1)
-					log.Println("[warn] error object exist", item.Id)
+					log.Println("[info] error object exist", item.Id)
 				} else {
 					// 文件上传失败
 					atomic.AddInt64(&failedCount, 1)
