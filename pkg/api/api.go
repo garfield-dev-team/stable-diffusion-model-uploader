@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 
 	"stable-diffusion-model-uploader/pkg/model"
@@ -29,6 +30,7 @@ func FetchModelList() []*model.IModelDetailDTO {
 		panic(fmt.Errorf("fail to resolve json: %w", err))
 	}
 
+	log.Printf("%+v\n", modelList)
 	if modelList.Code != 0 {
 		panic(fmt.Errorf("fail to request: %s", modelList.Message))
 	}
