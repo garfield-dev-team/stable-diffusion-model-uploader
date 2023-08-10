@@ -40,7 +40,7 @@ func main() {
 		item := item
 		p.Go(func() {
 			aliClient := client.New()
-			aliClient.UploadChunk(item)
+			aliClient.UploadRange(item)
 			err := aliClient.Error()
 			if err != nil {
 				if errors.Is(err, client.ErrObjectExist) {
