@@ -6,13 +6,11 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"strconv"
-	"sync"
-	"time"
-
 	"stable-diffusion-model-uploader/pkg/config"
 	"stable-diffusion-model-uploader/pkg/model"
 	"stable-diffusion-model-uploader/pkg/utils"
+	"strconv"
+	"sync"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 )
@@ -155,9 +153,7 @@ func (c *AliClient) UploadRange(model *model.IModelDetailDTO) {
 		c.err = fmt.Errorf("%w", ErrObjectExist)
 		return
 	}
-	expires := time.Date(2024, time.December, 10, 23, 0, 0, 0, time.UTC)
 	option := []oss.Option{
-		oss.Expires(expires),
 		// 指定该Object被下载时的网页缓存行为。
 		oss.CacheControl("no-cache"),
 		// 指定该Object被下载时的名称。
@@ -166,6 +162,7 @@ func (c *AliClient) UploadRange(model *model.IModelDetailDTO) {
 		oss.ContentEncoding("gzip"),
 		// 指定Object的存储类型。
 		oss.ObjectStorageClass(oss.StorageStandard),
+		oss.ContentLength(int64(c.fileSize)),
 		// 指定Object的访问权限。
 		//oss.ObjectACL(oss.ACLPrivate),
 		// 指定服务器端加密方式。
