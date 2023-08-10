@@ -116,7 +116,7 @@ func (c *AliClient) downloadRange(url string, start, end int) ([]byte, error) {
 		if err != nil && err != io.EOF {
 			return nil, err
 		}
-		if end != c.fileSize-1 && n < int64(c.chunkSize) {
+		if n < int64(end-start+1) {
 			if retryCount == 3 {
 				return nil, fmt.Errorf("failed to download range, max retry count reached")
 			}

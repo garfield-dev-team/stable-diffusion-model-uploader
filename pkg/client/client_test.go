@@ -4,6 +4,8 @@ import (
 	"context"
 	"io"
 	"log"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -31,6 +33,9 @@ func TestDownloadRange(t *testing.T) {
 		if end > aliClient.fileSize-1 {
 			end = aliClient.fileSize - 1
 		}
+		log.Println("===start", start)
+		log.Println("===end", end)
+		log.Println("===diff", end-start)
 		data, err := aliClient.downloadRange(url, start, end)
 		if err != nil {
 			if err != io.EOF {
@@ -49,4 +54,17 @@ func TestDownloadRange(t *testing.T) {
 	log.Println("[success] result:")
 	log.Printf("totalIter: %d, iter: %d\n", totalIter, iter)
 	log.Printf("fileSize: %d, bytes send: %d\n", aliClient.fileSize, cnt)
+}
+
+func TestDownloadFile(t *testing.T) {
+	dir, _ := os.Getwd()
+	filePath := filepath.Join(dir, "./3DMM_V12.safetensors")
+	log.Println("===filePath", filePath)
+	aliClient := New()
+	body, _ := aliClient.bucket.GetObject("lora/COOLKIDS_MERGE_V2.5.safetensors")
+	defer body.Close()
+	//file, _ := os.Create(filePath)
+	//io.Copy(file, body)
+	bytes, _ := io.ReadAll(body)
+	log.Println("===data", bytes)
 }
