@@ -163,6 +163,9 @@ func (c *AliClient) UploadRange(model *model.IModelDetailDTO) {
 		}
 		chunk, err := c.downloadRange(model.DownloadUrl, start, end)
 		if err != nil {
+			if err == io.EOF {
+				break // 读取完毕，退出循环
+			}
 			c.err = fmt.Errorf("failed to download range, objectName: %s, detail: %w", objectName, err)
 			go c.removeFailedObject(objectName)
 			return
