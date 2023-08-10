@@ -125,6 +125,8 @@ func (c *AliClient) removeFailedObject(objectName string) {
 	}
 }
 
+// UploadRange .
+// 断点续传方式下载文件，需要 Accept-Ranges=bytes
 func (c *AliClient) UploadRange(model *model.IModelDetailDTO) {
 	err := c.getFileMeta(model.DownloadUrl)
 	if err != nil {
@@ -180,6 +182,7 @@ func (c *AliClient) UploadRange(model *model.IModelDetailDTO) {
 	}
 }
 
+// UploadChunk .
 func (c *AliClient) UploadChunk(model *model.IModelDetailDTO) {
 	resp, err := http.Get(model.DownloadUrl)
 	if err != nil {

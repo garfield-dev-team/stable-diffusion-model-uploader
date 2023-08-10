@@ -1,12 +1,16 @@
 package client
 
 import (
+	"context"
 	"io"
 	"log"
 	"testing"
+	"time"
 )
 
 func TestDownloadRange(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Hour)
+	defer cancel()
 	url := "https://civitai.com/api/download/models/42985"
 	var aliClient = &AliClient{chunkSize: 10 * 1024 * 1024}
 	err := aliClient.getFileMeta(url)
