@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 
 	"stable-diffusion-model-uploader/pkg/config"
 	"stable-diffusion-model-uploader/pkg/model"
@@ -154,7 +155,9 @@ func (c *AliClient) UploadRange(model *model.IModelDetailDTO) {
 		c.err = fmt.Errorf("%w", ErrObjectExist)
 		return
 	}
+	expires := time.Date(2024, time.December, 10, 23, 0, 0, 0, time.UTC)
 	option := []oss.Option{
+		oss.Expires(expires),
 		// 指定该Object被下载时的网页缓存行为。
 		oss.CacheControl("no-cache"),
 		// 指定该Object被下载时的名称。
