@@ -98,23 +98,33 @@ func (c *AliClient) getFileMeta(url string) error {
 }
 
 func (c *AliClient) downloadRange(url string, start, end int) ([]byte, error) {
-	client := http.Client{}
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
+	retryCount := 0
+	for {
+		client := http.Client{}
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, end))
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+		buf := make([]byte, c.chunkSize)
+		n, err := io.CopyN(bytes.NewBuffer(buf), resp.Body, int64(c.chunkSize))
+		if err != nil && err != io.EOF {
+			return nil, err
+		}
+		if end != c.fileSize-1 && n < int64(c.chunkSize) {
+			if retryCount == 3 {
+				return nil, fmt.Errorf("failed to download range, max retry count reached")
+			}
+			retryCount++
+			continue
+		}
+		return buf[:n], nil
 	}
-	req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, end))
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	buf := make([]byte, c.chunkSize)
-	n, err := io.CopyN(bytes.NewBuffer(buf), resp.Body, int64(c.chunkSize))
-	if err != nil && err != io.EOF {
-		return nil, err
-	}
-	return buf[:n], nil
 }
 
 func (c *AliClient) removeFailedObject(objectName string) {
