@@ -79,6 +79,9 @@ func (c *AliClient) getFileMeta(url string) error {
 		return err
 	}
 	defer resp.Body.Close()
+	if resp.Header.Get("Accept-Ranges") != "bytes" {
+		return fmt.Errorf("服务器不支持文件断点续传")
+	}
 	contentLength := resp.Header.Get("Content-Length")
 	l, err := strconv.Atoi(contentLength)
 	if err != nil {
