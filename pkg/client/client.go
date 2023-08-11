@@ -110,8 +110,9 @@ func (c *AliClient) downloadRange(url string, start, end int) ([]byte, error) {
 			return nil, err
 		}
 		defer resp.Body.Close()
-		buf := make([]byte, c.chunkSize)
-		n, err := io.CopyN(bytes.NewBuffer(buf), resp.Body, int64(c.chunkSize))
+		buf := make([]byte, 0, c.chunkSize)
+		buffer := bytes.NewBuffer(buf)
+		n, err := io.CopyN(buffer, resp.Body, int64(c.chunkSize))
 		if err != nil && err != io.EOF {
 			return nil, err
 		}
@@ -124,7 +125,7 @@ func (c *AliClient) downloadRange(url string, start, end int) ([]byte, error) {
 			retryCount++
 			continue
 		}
-		return buf[:n], nil
+		return buffer.Bytes(), nil
 	}
 }
 

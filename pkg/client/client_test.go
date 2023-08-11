@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"log"
@@ -54,6 +55,38 @@ func TestDownloadRange(t *testing.T) {
 	log.Println("[success] result:")
 	log.Printf("totalIter: %d, iter: %d\n", totalIter, iter)
 	log.Printf("fileSize: %d, bytes send: %d\n", aliClient.fileSize, cnt)
+}
+
+func TestAliClient_UploadChunk(t *testing.T) {
+	reader := bytes.NewReader([]byte("测试内容2333测试内容2333测试内容2333"))
+	siz := reader.Size()
+	res := make([]byte, 0, siz)
+	buf := bytes.NewBuffer(res)
+	for {
+		n, err := io.CopyN(buf, reader, siz)
+		log.Println("===n", n)
+		log.Println("===err", err)
+		log.Println("===buf", buf.Bytes())
+		if err != nil {
+			break
+		}
+	}
+	//for {
+	//	n, err := reader.Read(buf)
+	//	log.Println("===n", n)
+	//	log.Println("===err", err)
+	//	log.Println("===res", buf)
+	//	if err != nil {
+	//		if err == io.EOF {
+	//			res = append(res, buf[:n]...)
+	//			break
+	//		}
+	//		log.Println(err)
+	//		return
+	//	}
+	//	res = append(res, buf[:n]...)
+	//}
+	log.Println("===finish", string(buf.Bytes()))
 }
 
 func TestDownloadFile(t *testing.T) {
