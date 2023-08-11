@@ -165,7 +165,6 @@ func (c *AliClient) UploadRange(model *model.IModelDetailDTO) {
 		oss.ContentEncoding("gzip"),
 		// 指定Object的存储类型。
 		oss.ObjectStorageClass(oss.StorageStandard),
-		oss.ContentLength(int64(c.fileSize)),
 		// 指定Object的访问权限。
 		//oss.ObjectACL(oss.ACLPrivate),
 		// 指定服务器端加密方式。
