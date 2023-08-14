@@ -43,6 +43,9 @@ func FetchModelList() []*model.IModelDetailDTO {
 	m[10055] = struct{}{}
 
 	for _, dto := range modelList.Result.List {
+		if dto.Type != 0 {
+			continue
+		}
 		if _, ok := m[dto.Id]; !ok {
 			m[dto.Id] = struct{}{}
 			res = append(res, dto)
