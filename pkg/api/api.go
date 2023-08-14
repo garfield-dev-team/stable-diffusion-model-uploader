@@ -39,6 +39,8 @@ func FetchModelList() []*model.IModelDetailDTO {
 	m := make(map[int]struct{}, l)
 	// 注意切片预分配内存写法 make([]T, 0, len)
 	res := make([]*model.IModelDetailDTO, 0, l)
+	// 过滤 revAnimated_v122 模型
+	m[10055] = struct{}{}
 
 	for _, dto := range modelList.Result.List {
 		if _, ok := m[dto.Id]; !ok {
