@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -30,6 +31,13 @@ func main() {
 	list := api.FetchModelList()
 
 	totalCount = len(list)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// 启动 executor，用来监听并执行 worker goroutine 发送的任务
+	executor := client.NewExecutor(ctx)
+	executor.Run()
 
 	p := pool.New().
 		WithMaxGoroutines(runtime.NumCPU() * 1)
@@ -62,6 +70,11 @@ func main() {
 	}
 
 	p.Wait()
+
+	// 上传任务完成
+	// 主 goroutine 发送信号并等待 executor 退出
+	cancel()
+	<-executor.C
 
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "[success] upload finished\n")

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"stable-diffusion-model-uploader/pkg/config"
 	"stable-diffusion-model-uploader/pkg/model"
@@ -19,6 +18,8 @@ var (
 	client *oss.Client
 	bucket *oss.Bucket
 	once   sync.Once
+
+	taskCh = make(chan string, 10)
 )
 
 var ErrObjectExist = fmt.Errorf("error object exists")
@@ -129,12 +130,10 @@ func (c *AliClient) downloadRange(url string, start, end int) ([]byte, error) {
 	}
 }
 
+// 向 taskCh 发送一个任务，不关心执行结果
+// 好处是不阻塞 worker goroutine，可以继续执行其他上传任务
 func (c *AliClient) removeFailedObject(objectName string) {
-	if err := c.bucket.DeleteObject(objectName); err != nil {
-		log.Printf("[warn] failed to remove object: %s", objectName)
-	} else {
-		log.Printf("[info] successful remove fail object: %s", objectName)
-	}
+	taskCh <- objectName
 }
 
 // UploadRange .
@@ -181,7 +180,7 @@ func (c *AliClient) UploadRange(model *model.IModelDetailDTO) {
 		chunk, err := c.downloadRange(model.DownloadUrl, start, end)
 		if err != nil {
 			c.err = fmt.Errorf("failed to download range, objectName: %s, detail: %w", objectName, err)
-			go c.removeFailedObject(objectName)
+			c.removeFailedObject(objectName)
 			return
 		}
 		// 将缓冲区中的数据流上传到 OSS 上
@@ -247,7 +246,7 @@ func (c *AliClient) UploadChunk(model *model.IModelDetailDTO) {
 			c.err = fmt.Errorf(
 				"failed to read resp, objectName: %s, detail: %w",
 				objectName, err)
-			go c.removeFailedObject(objectName)
+			c.removeFailedObject(objectName)
 			return
 		}
 
